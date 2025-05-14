@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "644119925212",
+    "project_id": "drivingtheoryapi",
+    "storage_bucket": "drivingtheoryapi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:644119925212:android:f46b07141d8adef869bf19",
+        "android_client_info": {
+          "package_name": "com.example.app_tblxa1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNixUIV2B2V_akCsPJk9EX3ySoOMP6JDg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
