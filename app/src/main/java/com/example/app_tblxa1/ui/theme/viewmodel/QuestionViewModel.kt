@@ -1,26 +1,28 @@
 package com.example.app_tblxa1.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.app_tblxa1.database.FirebaseClient
-import com.example.app_tblxa1.model.Question
+import com.example.app_tblxa1.model.Questions
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 
 class QuestionViewModel : ViewModel() {
-    private val _questions = MutableStateFlow<List<Question>>(emptyList())
-    val questions: StateFlow<List<Question>> = _questions
+    private val _questions = MutableStateFlow<List<Questions>>(emptyList())
+    val questions: StateFlow<List<Questions>> = _questions
+
+    private val _answerResults = MutableStateFlow<Map<Int, Boolean?>>(emptyMap())
+    val answerResults: StateFlow<Map<Int, Boolean?>> = _answerResults
 
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage
 
     fun fetchQuestions(category: String) {
-        println("Fetching questions for category: $category") // Log để kiểm tra giá trị category
         val query = FirebaseClient.database
             .getReference("questions")
             .orderByChild("type_learn")
@@ -29,24 +31,43 @@ class QuestionViewModel : ViewModel() {
         query.addListenerForSingleValueEvent(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 try {
-                    println("Snapshot exists: ${snapshot.exists()}, children count: ${snapshot.childrenCount}") // Log để kiểm tra snapshot
-                    val questionList = mutableListOf<Question>()
+                    val questionList = mutableListOf<Questions>()
                     for (child in snapshot.children) {
-                        val question = child.getValue(Question::class.java)
-                        println("Question: $question") // Log từng question
+                        val question = child.getValue(Questions::class.java)
+                        println("Debug: Fetched question = $question")
                         question?.let { questionList.add(it) }
                     }
                     _questions.value = questionList
                 } catch (e: Exception) {
-                    println("Error mapping question: ${e.message}")
-                    _errorMessage.value = "Error parsing data: ${e.message}"
+                    println("Error parsing data: ${e.message}")
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
-                println("Firebase error: ${error.message}")
                 _errorMessage.value = "Firebase error: ${error.message}"
             }
         })
+    }
+
+    suspend fun checkAnswer(questionId: Int, answerId: Int): Boolean {
+        return try {
+            val questionRef = FirebaseClient.database
+                .getReference("questions/$questionId/answers/$answerId")
+
+            val snapshot = withContext(Dispatchers.IO) { questionRef.get().await() }
+            snapshot.child("is_correct").getValue(Boolean::class.java) ?: false
+        } catch (e: Exception) {
+            println("Error checking answer: ${e.message}")
+            false
+        }
+    }
+
+    fun selectAnswer(questionId: Int, answerId: Int) {
+        val question = _questions.value.find { it.id == questionId }
+        val isCorrect = question?.answers?.find { it.id == answerId }?.is_correct ?: false
+
+        val updatedResults = _answerResults.value.toMutableMap()
+        updatedResults[questionId] = isCorrect
+        _answerResults.value = updatedResults
     }
 }

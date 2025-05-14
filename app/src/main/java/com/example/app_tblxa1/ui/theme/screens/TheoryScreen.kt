@@ -74,14 +74,6 @@ fun TheoryScreen(navController: NavHostController) {
                     progress = "0/35",
                     onClick = { navController.navigate("questions_screen/sa_hinh") }
                 )
-
-                TheoryCard(
-                    imageResId = R.drawable.icon_dangerous,
-                    title = "TỔNG HỢP CÂU ĐIỂM LIỆT",
-                    subtitle = "Gồm 20 câu hỏi (20 Câu điểm liệt)",
-                    progress = "0/20",
-                    onClick = { navController.navigate("questions_screen/liet") }
-                )
             }
         }
     )

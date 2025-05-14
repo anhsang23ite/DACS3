@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
@@ -36,12 +37,16 @@ fun TrafficCard(
         ) {
             // Sử dụng Coil để tải ảnh từ URL
             Image(
-                painter = rememberAsyncImagePainter(trafficSign.image_url),
+                painter = rememberAsyncImagePainter(
+                    model = trafficSign.image_url
+                ),
                 contentDescription = trafficSign.title,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(64.dp)
                     .clip(RoundedCornerShape(8.dp))
             )
+
 
             Spacer(modifier = Modifier.width(16.dp))
 
