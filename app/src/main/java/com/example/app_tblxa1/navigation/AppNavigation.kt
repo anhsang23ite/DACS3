@@ -7,17 +7,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.app_tblxa1.screens.MainScreen
+import com.example.app_tblxa1.ui.screens.ExamScreen
 import com.example.app_tblxa1.ui.screens.QuestionsScreen
 import com.example.app_tblxa1.ui.screens.TheoryScreen
 import com.example.app_tblxa1.ui.screens.TrafficScreen
 import com.example.app_tblxa1.ui.screens.TipsScreen
-import com.example.app_tblxa1.ui.theme.screens.ExamScreen
+import com.example.app_tblxa1.ui.theme.screens.ExamResultScreen
 import com.example.app_tblxa1.viewmodel.ExamViewModel
 import com.example.app_tblxa1.viewmodel.QuestionViewModel
 
@@ -44,20 +46,30 @@ fun AppNavigation() {
                     )
                 }
             } else {
+                val questionViewModel: QuestionViewModel = viewModel()
+                val examViewModel: ExamViewModel = viewModel()
+
                 ExamScreen(
+                    onExamFinished = { score, hasPassed ->
+                        navController.navigate("exam_result/$score/$hasPassed")
+                    },
                     navController = navController,
-                    questionViewModel = QuestionViewModel(),
-                    examViewModel = ExamViewModel(),
-                    typeTest = typeTest,
-                    onSubmitExam = { score, hasPassed ->
-                        navController.previousBackStackEntry?.savedStateHandle?.set(
-                            "exam_result",
-                            mapOf("score" to score, "hasPassed" to hasPassed)
-                        )
-                        navController.popBackStack()
-                    }
+                    questionViewModel = questionViewModel,
+                    examViewModel = examViewModel,
+                    typeTest = typeTest
                 )
             }
+        }
+
+        composable("exam_result/{score}/{hasPassed}",
+            arguments = listOf(
+                navArgument("score") { type = NavType.IntType },
+                navArgument("hasPassed") { type = NavType.BoolType }
+            )
+        ) { backStackEntry ->
+            val score = backStackEntry.arguments?.getInt("score") ?: 0
+            val hasPassed = backStackEntry.arguments?.getBoolean("hasPassed") ?: false
+            ExamResultScreen(score, hasPassed, navController)
         }
 
         composable("traffic_screen") { TrafficScreen(navController) }
@@ -71,3 +83,4 @@ fun AppNavigation() {
         }
     }
 }
+

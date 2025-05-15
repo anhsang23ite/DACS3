@@ -1,86 +1,74 @@
-package com.example.app_tblxa1.ui.theme.screens
+package com.example.app_tblxa1.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.app_tblxa1.ui.theme.components.ExamCard
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import com.example.app_tblxa1.viewmodel.ExamViewModel
+import com.example.app_tblxa1.ui.theme.components.ExamCard
 import com.example.app_tblxa1.viewmodel.QuestionViewModel
 
 @Composable
 fun ExamScreen(
+    onExamFinished: (Int, Boolean) -> Unit,
     navController: NavHostController,
-    questionViewModel: QuestionViewModel = viewModel(),
-    examViewModel: ExamViewModel = viewModel(),
-    typeTest: String,
-    onSubmitExam: (Int, Boolean) -> Unit
+    questionViewModel: QuestionViewModel,
+    examViewModel: ExamViewModel,
+    typeTest: String
 ) {
-    val questions by questionViewModel.questions.collectAsState()
-    val errorMessage by questionViewModel.errorMessage.collectAsState()
-    val answerResults by examViewModel.answerResults.collectAsState()
+    val viewModel: ExamViewModel = viewModel()
 
-    var selectedAnswers by remember { mutableStateOf(mutableMapOf<Int, Int>()) }
-    var timeLeft by remember { mutableStateOf(19 * 60) }
-    var isSubmitted by remember { mutableStateOf(false) }
-
-    LaunchedEffect(typeTest) {
-        questionViewModel.fetchQuestionsByTypeTest(typeTest)
+    LaunchedEffect(Unit) {
+        viewModel.fetchExamQuestions()
+        viewModel.startTimer {
+            viewModel.submitExam(onExamFinished)
+        }
     }
 
-    if (questions.isEmpty() && errorMessage == null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-    } else if (errorMessage != null) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = errorMessage ?: "Error", color = MaterialTheme.colorScheme.error)
-        }
-    } else {
-        Column(Modifier.fillMaxSize().padding(16.dp)) {
-            Text(
-                text = "Thời gian còn lại: ${timeLeft / 60}:${String.format("%02d", timeLeft % 60)}",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
+    val questions = viewModel.examQuestions.collectAsState()
+    val selectedAnswers = viewModel.selectedAnswers.collectAsState()
+    val timeRemaining = viewModel.timeRemaining.collectAsState()
+    val isExamSubmitted = viewModel.isExamSubmitted.collectAsState()
 
-            LazyColumn {
-                items(questions.size) { index ->
-                    ExamCard(
-                        question = questions[index],
-                        questionNumber = index + 1,
-                        onAnswerSelected = { answerId ->
-                            selectedAnswers[questions[index].id] = answerId
-                            examViewModel.updateAnswerResult(
-                                questions[index].id,
-                                isCorrect = questions[index].answers.find { it.id == answerId }?.is_correct == true
-                            )
-                        },
-                        isSubmitted = isSubmitted
-                    )
-                }
-            }
+    if (isExamSubmitted.value) {
+        Text(
+            text = "Bài thi đã được nộp!",
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier.padding(16.dp)
+        )
+        return
+    }
 
-            Button(
-                onClick = {
-                    if (!isSubmitted) {
-                        isSubmitted = true
-                        examViewModel.calculateScore(questions, selectedAnswers) { score, hasPassed ->
-                            onSubmitExam(score, hasPassed)
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .padding(top = 16.dp)
-            ) {
-                Text(text = "Nộp bài")
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text(
+            text = "Thời gian còn lại: ${timeRemaining.value / 60}:${timeRemaining.value % 60}",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            itemsIndexed(questions.value) { index, question ->
+                ExamCard(
+                    question = question,
+                    questionNumber = index + 1,
+                    onAnswerSelected = { questionId, answerId ->
+                        viewModel.selectAnswer(questionId, answerId)
+                    },
+                    selectedAnswerId = selectedAnswers.value[question.id]
+                )
             }
+        }
+
+        Button(
+            onClick = { viewModel.submitExam(onExamFinished) },
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+        ) {
+            Text("Nộp bài")
         }
     }
 }

@@ -2,65 +2,80 @@ package com.example.app_tblxa1.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.app_tblxa1.database.FirebaseClient
 import com.example.app_tblxa1.model.Questions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
-import kotlinx.coroutines.withContext
-import com.google.firebase.database.GenericTypeIndicator
-import com.example.app_tblxa1.database.FirebaseClient
 
 class ExamViewModel : ViewModel() {
-    private val _answerResults = MutableStateFlow<Map<Int, Boolean?>>(emptyMap())
-    val answerResults: StateFlow<Map<Int, Boolean?>> = _answerResults
+    private val _examQuestions = MutableStateFlow<List<Questions>>(emptyList())
+    val examQuestions: StateFlow<List<Questions>> get() = _examQuestions
 
-    suspend fun checkAnswer(questionId: Int, answerId: Int): Boolean {
-        return try {
-            val questionRef = FirebaseClient.database
-                .getReference("questions/$questionId/answers")
+    private val _selectedAnswers = MutableStateFlow<Map<Int, Int>>(emptyMap())
+    val selectedAnswers: StateFlow<Map<Int, Int>> get() = _selectedAnswers
 
-            // Lấy danh sách câu trả lời từ Firebase
-            val snapshot = withContext(Dispatchers.IO) { questionRef.get().await() }
-            val answers = snapshot.getValue(object : GenericTypeIndicator<List<Map<String, Any>>>() {})
+    private val _timeRemaining = MutableStateFlow(19 * 60) // 19 phút
+    val timeRemaining: StateFlow<Int> get() = _timeRemaining
 
-            // Tìm câu trả lời có `id` khớp với `answerId` và lấy giá trị `is_correct`
-            answers?.firstOrNull { it["id"] == answerId }?.get("is_correct") as? Boolean ?: false
-        } catch (e: Exception) {
-            println("Error checking answer: ${e.message}")
-            false
-        }
-    }
+    private val _isExamSubmitted = MutableStateFlow(false)
+    val isExamSubmitted: StateFlow<Boolean> get() = _isExamSubmitted
 
-    fun updateAnswerResult(questionId: Int, isCorrect: Boolean) {
-        _answerResults.value = _answerResults.value.toMutableMap().apply {
-            this[questionId] = isCorrect // Cập nhật kết quả đúng/sai cho câu hỏi tương ứng
-        }
-    }
+    fun fetchExamQuestions() = viewModelScope.launch {
+        try {
+            val snapshot = FirebaseClient.database.getReference("questions").get().await()
+            val allQuestions = snapshot.children.mapNotNull { it.getValue(Questions::class.java) }
 
-    fun calculateScore(
-        questionList: List<Questions>,
-        selectedAnswers: Map<Int, Int>,
-        onResult: (score: Int, hasPassed: Boolean) -> Unit
-    ) {
-        viewModelScope.launch {
-            var score = 0
-            var hasFailedLiet = false
+            val lietQuestion = allQuestions.filter { it.type_test == "liet" }.randomOrNull()
+            val thuongQuestions = allQuestions.filter { it.type_test == "thuong" }.shuffled().take(24)
 
-            questionList.forEach { question ->
-                val correctAnswer = question.answers.find { it.is_correct }?.id
-                val userAnswer = selectedAnswers[question.id]
-
-                if (correctAnswer == userAnswer) {
-                    score++
-                } else if (question.type_test == "liet") {
-                    hasFailedLiet = true
-                }
+            val selectedQuestions = buildList {
+                lietQuestion?.let { add(it) }
+                addAll(thuongQuestions)
             }
 
-            val hasPassed = !hasFailedLiet && score >= 23
-            onResult(score, hasPassed)
+            _examQuestions.value = selectedQuestions
+        } catch (e: Exception) {
+            println("Error fetching exam questions: ${e.message}")
         }
+    }
+
+    fun selectAnswer(questionId: Int, answerId: Int) {
+        _selectedAnswers.value = _selectedAnswers.value.toMutableMap().apply {
+            this[questionId] = answerId
+        }
+    }
+
+    fun submitExam(onResult: (score: Int, hasPassed: Boolean) -> Unit) = viewModelScope.launch {
+        val questions = _examQuestions.value
+        val answers = _selectedAnswers.value
+
+        var score = 0
+        var hasFailedLiet = false
+
+        for (question in questions) {
+            val correctAnswerId = question.answers.find { it.is_correct }?.id
+            val userAnswerId = answers[question.id]
+
+            if (userAnswerId != null && correctAnswerId != null && userAnswerId == correctAnswerId) {
+                score++
+            } else if (question.type_test == "liet") {
+                hasFailedLiet = true
+            }
+        }
+
+        _isExamSubmitted.value = true
+        val hasPassed = !hasFailedLiet && score >= 23
+        onResult(score, hasPassed)
+    }
+
+    fun startTimer(onTimeout: () -> Unit) = viewModelScope.launch(Dispatchers.IO) {
+        while (_timeRemaining.value > 0 && !_isExamSubmitted.value) {
+            kotlinx.coroutines.delay(1000)
+            _timeRemaining.value = _timeRemaining.value - 1
+        }
+        if (!_isExamSubmitted.value) onTimeout()
     }
 }

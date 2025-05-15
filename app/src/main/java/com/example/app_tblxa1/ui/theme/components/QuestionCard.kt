@@ -12,31 +12,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.app_tblxa1.model.AnswerResult
 import com.example.app_tblxa1.model.Questions
-import com.example.app_tblxa1.viewmodel.QuestionViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
 fun QuestionCard(
-    question: Questions, // Đối tượng câu hỏi
-    questionNumber: Int, // Số thứ tự câu hỏi
-    onAnswerSelected: suspend (Int, Int) -> Boolean // Hàm kiểm tra đáp án
+    question: Questions,
+    questionNumber: Int,
+    onAnswerSelected: suspend (Int, Int) -> AnswerResult
+
 ) {
-    // Lưu trữ trạng thái ID của câu trả lời được chọn
     val selectedAnswerId = remember { mutableStateOf<Int?>(null) }
-    // Lưu trữ trạng thái kết quả đúng/sai
     val isAnswerCorrect = remember { mutableStateOf<Boolean?>(null) }
-    // Sử dụng coroutine để thực thi các hàm suspend
+    val correctAnswer = remember { mutableStateOf<String?>(null) }
+    val answerLabels = listOf("A", "B", "C", "D", "E")
     val coroutineScope = rememberCoroutineScope()
 
+    println("Question answers in QuestionCard: ${question.answers.map { "${it.id}: ${it.answer_text}, is_correct: ${it.is_correct}" }}")
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        // Hiển thị câu hỏi
         Text(
             text = "Câu $questionNumber: ${question.question_text}",
             style = MaterialTheme.typography.titleMedium
@@ -44,14 +44,12 @@ fun QuestionCard(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Hiển thị danh sách các đáp án
-        question.answers.forEach { answer ->
-            // Xác định đáp án được chọn
-            val isSelected = selectedAnswerId.value == answer.id
-            // Thay đổi màu nền theo kết quả đúng/sai
+        question.answers.forEachIndexed { index, answers ->
+            val isSelected = selectedAnswerId.value == answers.id
             val backgroundColor = when {
-                isSelected && isAnswerCorrect.value == true -> Color(0xFFDFF0D8) // Màu xanh lá nếu đúng
-                isSelected && isAnswerCorrect.value == false -> Color(0xFFF2DEDE) // Màu đỏ nếu sai
+                !isSelected -> MaterialTheme.colorScheme.surface
+                isAnswerCorrect.value == true -> Color(0xFFDFF0D8)
+                isAnswerCorrect.value == false -> Color(0xFFF2DEDE)
                 else -> MaterialTheme.colorScheme.surface
             }
 
@@ -59,15 +57,25 @@ fun QuestionCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 6.dp)
-                    .clickable(enabled = isAnswerCorrect.value == null) { // Chỉ cho phép chọn nếu chưa có đáp án
-                        selectedAnswerId.value = answer.id // Lưu ID câu trả lời đã chọn
+                    .clickable(enabled = isAnswerCorrect.value == null) {
+                        selectedAnswerId.value = answers.id
                         coroutineScope.launch {
-                            // Gọi hàm kiểm tra đúng/sai
-                            val result = onAnswerSelected(question.id, answer.id)
-                            isAnswerCorrect.value = result // Lưu kết quả đúng/sai
+                            val result = withContext(Dispatchers.IO) {
+                                onAnswerSelected(question.id, answers.id)
+                            }
+                            isAnswerCorrect.value = result.isCorrect
+                            correctAnswer.value = result.correctAnswerText?.let {
+                                val correctIndex = question.answers.indexOfFirst { ans -> ans.answer_text == it }
+                                val label = answerLabels.getOrNull(correctIndex) ?: "?"
+                                "$label. $it"
+                            } ?: "Không có câu trả lời đúng"
+
+                            println("Correct answer set to: ${correctAnswer.value}")
                         }
+
                     },
-                colors = CardDefaults.cardColors(containerColor = backgroundColor)
+                colors = CardDefaults.cardColors(containerColor = backgroundColor),
+                border = BorderStroke(1.dp, if (isSelected) Color.Black else Color.Transparent)
             ) {
                 Row(
                     modifier = Modifier
@@ -75,23 +83,48 @@ fun QuestionCard(
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Hiển thị nội dung câu trả lời
                     Text(
-                        text = answer.answer_text,
+                        text = "${answerLabels.getOrNull(index) ?: ""}.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(end = 8.dp)
+                    )
+
+                    Text(
+                        text = answers.answer_text,
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f)
                     )
 
-                    // Hiển thị icon đánh dấu đúng/sai nếu đã chọn
                     if (isSelected && isAnswerCorrect.value != null) {
                         Icon(
                             imageVector = if (isAnswerCorrect.value == true) Icons.Default.Check else Icons.Default.Clear,
                             contentDescription = null,
-                            tint = if (isAnswerCorrect.value == true) Color.Green else Color.Red
+                            tint = if (isAnswerCorrect.value == true) Color(0xFF4CAF50) else Color.Red
                         )
                     }
                 }
             }
         }
+
+        if (isAnswerCorrect.value != null) {
+            Text(
+                text = if (isAnswerCorrect.value == true) {
+                    "Câu trả lời của bạn: Đúng"
+                } else {
+                    "Câu trả lời của bạn: Sai"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isAnswerCorrect.value == true) Color(0xFF4CAF50) else Color.Red,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+
+            Text(
+                text = "Câu trả lời đúng là: ${correctAnswer.value}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Blue,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+
     }
 }
