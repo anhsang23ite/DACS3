@@ -77,7 +77,7 @@ fun MainScreen(navController: NavHostController) {
                 text = "Thi sát hạch",
                 modifier = Modifier.weight(1f)
             ) {
-                navController.navigate("exam")
+                navController.navigate("exam/thuong")
             }
         }
 
