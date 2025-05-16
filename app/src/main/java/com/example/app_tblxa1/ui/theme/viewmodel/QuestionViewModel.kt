@@ -33,8 +33,10 @@ class QuestionViewModel : ViewModel() {
                 try {
                     val questionList = mutableListOf<Questions>()
                     for (child in snapshot.children) {
+                        println("Raw data for question: ${child.value}") // Log dữ liệu thô
                         val question = child.getValue(Questions::class.java)
-                        println("Debug: Fetched question = $question")
+                        println("Parsed question: $question") // Log sau khi ánh xạ
+                        println("Parsed answers: ${question?.answers?.map { "${it.id}: ${it.answer_text}, is_correct: ${it.is_correct}" }}") // Log chi tiết answers
                         question?.let { questionList.add(it) }
                     }
                     _questions.value = questionList
@@ -42,7 +44,6 @@ class QuestionViewModel : ViewModel() {
                     println("Error parsing data: ${e.message}")
                 }
             }
-
             override fun onCancelled(error: DatabaseError) {
                 _errorMessage.value = "Firebase error: ${error.message}"
             }
@@ -51,17 +52,25 @@ class QuestionViewModel : ViewModel() {
 
     suspend fun checkAnswer(questionId: Int, answerId: Int): Boolean {
         return try {
-            val questionRef = FirebaseClient.database
-                .getReference("questions/$questionId/answers/$answerId")
-
+            val questionRef = FirebaseClient.database.getReference("questions/$questionId")
             val snapshot = withContext(Dispatchers.IO) { questionRef.get().await() }
-            snapshot.child("is_correct").getValue(Boolean::class.java) ?: false
+            println("Snapshot for question $questionId: ${snapshot.value}")
+            val answers = snapshot.child("answers").children
+            for (answer in answers) {
+                val answerIdFromFirebase = answer.child("id").getValue(Int::class.java)
+                val rawIsCorrect = answer.child("is_correct").value // Lấy giá trị thô
+                val isCorrect = answer.child("is_correct").getValue(Boolean::class.java) ?: false
+                println("Answer ID: $answerIdFromFirebase, Raw is_correct: $rawIsCorrect, Parsed is_correct: $isCorrect")
+                if (answerIdFromFirebase == answerId) {
+                    return isCorrect
+                }
+            }
+            false
         } catch (e: Exception) {
             println("Error checking answer: ${e.message}")
             false
         }
     }
-
     fun selectAnswer(questionId: Int, answerId: Int) {
         val question = _questions.value.find { it.id == questionId }
         val isCorrect = question?.answers?.find { it.id == answerId }?.is_correct ?: false

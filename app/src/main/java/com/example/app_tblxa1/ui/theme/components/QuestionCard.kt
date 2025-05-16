@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 fun QuestionCard(
     question: Questions,
     questionNumber: Int,
-    onAnswerSelected: suspend (Int, Int) -> Boolean // Firebase kiểm tra đáp án
+    onAnswerSelected: suspend (Int, Int) -> Boolean
 ) {
     val selectedAnswerId = remember { mutableStateOf<Int?>(null) }
     val isAnswerCorrect = remember { mutableStateOf<Boolean?>(null) }
@@ -29,12 +29,12 @@ fun QuestionCard(
     val answerLabels = listOf("A", "B", "C", "D", "E")
     val coroutineScope = rememberCoroutineScope()
 
+    println("Question answers in QuestionCard: ${question.answers.map { "${it.id}: ${it.answer_text}, is_correct: ${it.is_correct}" }}")
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        // Hiển thị câu hỏi
         Text(
             text = "Câu $questionNumber: ${question.question_text}",
             style = MaterialTheme.typography.titleMedium
@@ -42,22 +42,15 @@ fun QuestionCard(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Danh sách đáp án
         question.answers.forEachIndexed { index, answers ->
             val isSelected = selectedAnswerId.value == answers.id
             val backgroundColor = when {
                 !isSelected -> MaterialTheme.colorScheme.surface
-                isAnswerCorrect.value == true -> Color(0xFFDFF0D8) // Màu xanh nếu đúng
-                isAnswerCorrect.value == false -> Color(0xFFF2DEDE) // Màu đỏ nếu sai
+                isAnswerCorrect.value == true -> Color(0xFFDFF0D8)
+                isAnswerCorrect.value == false -> Color(0xFFF2DEDE)
                 else -> MaterialTheme.colorScheme.surface
             }
-            val correct = question.answers.find { it.is_correct } // Tìm câu trả lời đúng
-            if (correct == null) {
-                correctAnswer.value = "Không có câu trả lời đúng"
-            } else {
-                val correctIndex = question.answers.indexOf(correct)
-                correctAnswer.value = "${answerLabels[correctIndex]}. ${correct.answer_text}"
-            }
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -65,20 +58,17 @@ fun QuestionCard(
                     .clickable(enabled = isAnswerCorrect.value == null) {
                         selectedAnswerId.value = answers.id
                         coroutineScope.launch {
-                            // Kiểm tra đáp án từ Firebase
                             val result = withContext(Dispatchers.IO) {
                                 onAnswerSelected(question.id, answers.id)
                             }
                             isAnswerCorrect.value = result
-
-                            // Xác định đáp án đúng
-                            val correct = question.answers.find { it.is_correct == true }
-                            correctAnswer.value = if (correct != null) {
-                                val correctIndex = question.answers.indexOf(correct)
-                                "${answerLabels[correctIndex]}. ${correct.answer_text}"
-                            } else {
-                                "Không có câu trả lời đúng"
-                            }
+                            println("Check result for answer ${answers.id}: $result, Answers state: ${question.answers.map { "${it.id}: ${it.answer_text}, is_correct: ${it.is_correct}" }}")
+                            val correct = question.answers.find { it.is_correct }
+                            correctAnswer.value = correct?.let {
+                                val correctIndex = question.answers.indexOf(it)
+                                "${answerLabels[correctIndex]}. ${it.answer_text}"
+                            } ?: "Không có câu trả lời đúng"
+                            println("Correct answer set to: ${correctAnswer.value}")
                         }
                     },
                 colors = CardDefaults.cardColors(containerColor = backgroundColor),
@@ -113,7 +103,6 @@ fun QuestionCard(
             }
         }
 
-        // Hiển thị kết quả
         if (isAnswerCorrect.value != null) {
             Text(
                 text = if (isAnswerCorrect.value == true) {
