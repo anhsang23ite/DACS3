@@ -108,7 +108,7 @@ fun MainScreen(navController: NavHostController) {
                 text = "Các câu sai",
                 modifier = Modifier.weight(1f)
             ) {
-                navController.navigate("questions_screen/liet") // Chuyển đến danh mục "Câu điểm liệt"
+                navController.navigate("wrong_questions")
             }
         }
     }

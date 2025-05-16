@@ -31,6 +31,6 @@ fun AppNavigation() {
             val category = backStackEntry.arguments?.getString("category") ?: ""
             QuestionsScreen(navController, category)
         }
+        composable("wrong_questions") { WrongQuestionsScreen(navController) }
     }
 }
-
