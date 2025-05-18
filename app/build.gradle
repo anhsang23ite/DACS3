@@ -72,6 +72,7 @@ dependencies {
 
     // Room for database
     implementation(libs.androidx.room.compiler)
+    implementation libs.firebase.auth.ktx
 
     // Testing dependencies
     testImplementation(libs.junit)

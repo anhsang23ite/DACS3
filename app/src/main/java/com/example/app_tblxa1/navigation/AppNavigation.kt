@@ -16,12 +16,17 @@ import androidx.navigation.navArgument
 import com.example.app_tblxa1.screens.MainScreen
 import com.example.app_tblxa1.ui.screens.ExamScreen
 import com.example.app_tblxa1.ui.screens.QuestionsScreen
+import com.example.app_tblxa1.ui.screens.SignInScreen
+import com.example.app_tblxa1.ui.screens.SignUpScreen
 import com.example.app_tblxa1.ui.screens.TheoryScreen
 import com.example.app_tblxa1.ui.screens.TrafficScreen
 import com.example.app_tblxa1.ui.screens.TipsScreen
+import com.example.app_tblxa1.ui.screens.WrongQuestionsScreen
 import com.example.app_tblxa1.ui.theme.screens.ExamResultScreen
 import com.example.app_tblxa1.viewmodel.ExamViewModel
 import com.example.app_tblxa1.viewmodel.QuestionViewModel
+import com.example.app_tblxa1.viewmodel.SignInViewModel
+import com.example.app_tblxa1.viewmodel.SignUpViewModel
 
 @Composable
 fun AppNavigation() {
@@ -74,6 +79,9 @@ fun AppNavigation() {
 
         composable("traffic_screen") { TrafficScreen(navController) }
         composable("tips_screen") { TipsScreen(navController) }
+        composable("sign_in") { SignInScreen(navController, SignInViewModel()) }
+        composable("sign_up") { SignUpScreen(navController, SignUpViewModel()) }
+        composable("wrong_questions") { WrongQuestionsScreen(navController) }
         composable(
             "questions_screen/{category}",
             arguments = listOf(navArgument("category") { type = NavType.StringType })
