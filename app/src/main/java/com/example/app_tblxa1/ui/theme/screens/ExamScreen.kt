@@ -28,7 +28,7 @@ fun ExamScreen(
     examViewModel: ExamViewModel,
     typeTest: String,
     context: Context = LocalContext.current,
-    onExamFinished: Function<Unit>
+    onExamFinished: () -> Unit
 ) {
     LaunchedEffect(Unit) {
         examViewModel.resetExam()
@@ -93,7 +93,8 @@ fun ExamScreen(
                             selectedAnswerId = selectedAnswers.value[question.id],
                             isAnswerSelected = isAnswerSelected.value[question.id] ?: false,
                             isCorrect = null, // Không hiển thị đúng/sai trước nộp
-                            isExamSubmitted = isExamSubmitted.value
+                            isExamSubmitted = isExamSubmitted.value,
+                            correctAnswerText = null // Không hiển thị đáp án đúng trước nộp
                         )
                     }
                 }

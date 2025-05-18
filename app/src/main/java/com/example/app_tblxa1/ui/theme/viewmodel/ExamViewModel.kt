@@ -6,6 +6,7 @@ import android.net.NetworkCapabilities
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.app_tblxa1.database.FirebaseClient
+import com.example.app_tblxa1.model.AnswerResult
 import com.example.app_tblxa1.model.Answers
 import com.example.app_tblxa1.model.Questions
 import com.google.firebase.database.GenericTypeIndicator
@@ -23,8 +24,8 @@ class ExamViewModel : ViewModel() {
     private val _selectedAnswers = MutableStateFlow<Map<Int, Int>>(emptyMap())
     val selectedAnswers: StateFlow<Map<Int, Int>> get() = _selectedAnswers
 
-    private val _answerResults = MutableStateFlow<Map<Int, Boolean?>>(emptyMap())
-    val answerResults: StateFlow<Map<Int, Boolean?>> get() = _answerResults
+    private val _answerResults = MutableStateFlow<Map<Int, AnswerResult>>(emptyMap())
+    val answerResults: StateFlow<Map<Int, AnswerResult>> get() = _answerResults
 
     private val _isAnswerSelected = MutableStateFlow<Map<Int, Boolean>>(emptyMap())
     val isAnswerSelected: StateFlow<Map<Int, Boolean>> get() = _isAnswerSelected
@@ -161,10 +162,15 @@ class ExamViewModel : ViewModel() {
             this[questionId] = true
         }
         val isCorrect = checkAnswer(questionId, answerId, context)
+        val correctAnswer = _examQuestions.value.find { it.id == questionId }
+            ?.answers?.find { it.is_correct }?.answer_text
         _answerResults.value = _answerResults.value.toMutableMap().apply {
-            this[questionId] = isCorrect
+            this[questionId] = AnswerResult(
+                isCorrect = isCorrect,
+                correctAnswerText = correctAnswer
+            )
         }
-        println("Chọn đáp án Q$questionId: A$answerId, Đúng=$isCorrect, Kết quả: ${_answerResults.value}")
+        println("Chọn đáp án Q$questionId: A$answerId, Đúng=$isCorrect, Đáp án đúng=$correctAnswer, Kết quả: ${_answerResults.value}")
     }
 
     suspend fun checkAnswer(questionId: Int, answerId: Int, context: Context): Boolean {
@@ -233,25 +239,29 @@ class ExamViewModel : ViewModel() {
         var score = 0
         var hasFailedLiet = false
 
-        for (question in questions) {
+        val results = questions.associate { question ->
             val correctAnswerId = question.answers.find { it.is_correct }?.id
+            val correctAnswerText = question.answers.find { it.is_correct }?.answer_text
             val userAnswerId = answers[question.id]
             println("Q${question.id}: Đáp án đúng=$correctAnswerId, Đáp án người dùng=$userAnswerId, Loại=${question.type_test}")
 
             if (correctAnswerId == null) {
                 println("Lỗi: Q${question.id} không có đáp án đúng")
-                continue
-            }
-
-            if (userAnswerId != null && userAnswerId == correctAnswerId) {
-                score++
-                println("Đúng Q${question.id}, Điểm: $score")
-            } else if (question.type_test == "liet") {
-                hasFailedLiet = true
-                println("Sai câu liệt Q${question.id}")
+                question.id to AnswerResult(isCorrect = false, correctAnswerText = correctAnswerText)
+            } else {
+                val isCorrect = userAnswerId != null && userAnswerId == correctAnswerId
+                if (isCorrect) {
+                    score++
+                    println("Đúng Q${question.id}, Điểm: $score")
+                } else if (question.type_test == "liet") {
+                    hasFailedLiet = true
+                    println("Sai câu liệt Q${question.id}")
+                }
+                question.id to AnswerResult(isCorrect = isCorrect, correctAnswerText = correctAnswerText)
             }
         }
 
+        _answerResults.value = results
         _score.value = score
         _hasFailedLiet.value = hasFailedLiet
         _isExamSubmitted.value = true

@@ -58,17 +58,25 @@ fun TrafficCard(
                     contentDescription = trafficSign.title2,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier
-                        .size(120.dp)
+                        .size(160.dp)
                         .clip(RoundedCornerShape(12.dp))
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = trafficSign.title2,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(), // để có thể căn giữa theo chiều ngang
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = trafficSign.title2,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+                }
+
             } else {
                 // Mặt sau: Mô tả
                 Text(

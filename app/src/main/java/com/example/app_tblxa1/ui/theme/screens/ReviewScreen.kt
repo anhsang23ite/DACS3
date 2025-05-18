@@ -14,6 +14,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import com.example.app_tblxa1.model.AnswerResult
 import com.example.app_tblxa1.ui.theme.components.ExamCard
 import com.example.app_tblxa1.viewmodel.ExamViewModel
 
@@ -53,11 +54,12 @@ fun ReviewScreen(
                 ExamCard(
                     question = question,
                     questionNumber = index + 1,
-                    onAnswerSelected = { _, _ -> }, // Vô hiệu hóa chọn đáp án
+                    onAnswerSelected = { _, _ -> }, // Disable answer selection
                     selectedAnswerId = selectedAnswers.value[question.id],
                     isAnswerSelected = isAnswerSelected.value[question.id] ?: false,
-                    isCorrect = answerResults.value[question.id],
-                    isExamSubmitted = true // Luôn hiển thị màu xanh/đỏ
+                    isCorrect = answerResults.value[question.id]?.isCorrect,
+                    isExamSubmitted = true, // Always show feedback
+                    correctAnswerText = answerResults.value[question.id]?.correctAnswerText
                 )
             }
         }
@@ -65,7 +67,7 @@ fun ReviewScreen(
         Button(
             onClick = {
                 examViewModel.resetExam()
-                navController.navigate("home") {
+                navController.navigate("main") {
                     popUpTo(navController.graph.startDestinationId) {
                         inclusive = true
                     }

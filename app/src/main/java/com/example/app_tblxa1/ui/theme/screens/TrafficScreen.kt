@@ -104,7 +104,7 @@ fun TrafficScreen(
                             Image(
                                 painter = painterResource(id = R.drawable.left),
                                 contentDescription = "Previous",
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(48.dp),
                                 colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
                                     if (currentIndex > 0) Color.Green else Color.Gray
                                 )
@@ -122,7 +122,7 @@ fun TrafficScreen(
                             Image(
                                 painter = painterResource(id = R.drawable.right),
                                 contentDescription = "Next",
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(48.dp),
                                 colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
                                     if (currentIndex < signsList.size - 1) Color.Green else Color.Gray
                                 )

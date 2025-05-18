@@ -1,10 +1,11 @@
 package com.example.app_tblxa1.ui.theme.components
 
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.app_tblxa1.model.Questions
 
@@ -14,9 +15,10 @@ fun ExamCard(
     questionNumber: Int,
     onAnswerSelected: (Int, Int) -> Unit,
     selectedAnswerId: Int?,
-    isCorrect: Boolean?, // Thêm tham số để hiển thị đúng/sai
+    isCorrect: Boolean?,
     isAnswerSelected: Boolean,
-    isExamSubmitted: Boolean
+    isExamSubmitted: Boolean,
+    correctAnswerText: String?
 ) {
     val answerLabels = listOf("A", "B", "C", "D", "E")
 
@@ -64,6 +66,30 @@ fun ExamCard(
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        if (isExamSubmitted && isCorrect != null) {
+            Text(
+                text = if (isCorrect) {
+                    "Câu trả lời của bạn: Đúng"
+                } else {
+                    "Câu trả lời của bạn: Sai"
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isCorrect) Color(0xFF4CAF50) else Color.Red,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+
+            if (correctAnswerText != null) {
+                Text(
+                    text = "Câu trả lời đúng là: $correctAnswerText",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Blue,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
         }
     }
