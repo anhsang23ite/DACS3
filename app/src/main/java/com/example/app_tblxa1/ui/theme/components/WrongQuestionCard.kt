@@ -13,23 +13,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.app_tblxa1.model.Questions
-import com.example.app_tblxa1.viewmodel.WrongQuestionViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
 fun WrongQuestionCard(
     question: Questions,
-    questionNumber: Int,
-    viewModel: WrongQuestionViewModel,
-    onAnswerSelected: (Int, Int) -> Unit = { _, _ -> }
+    questionNumber: Int
 ) {
     var selectedAnswerId by remember { mutableStateOf<Int?>(null) }
     var isAnswerCorrect by remember { mutableStateOf<Boolean?>(null) }
-    var correctIonic by remember { mutableStateOf<String?>(null) }
+    var correctAnswerLabel by remember { mutableStateOf<String?>(null) }
     val answerLabels = listOf("A", "B", "C", "D", "E")
-    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -47,28 +40,21 @@ fun WrongQuestionCard(
             val isSelected = selectedAnswerId == answer.id
             val backgroundColor = when {
                 !isSelected -> MaterialTheme.colorScheme.surface
-                isAnswerCorrect == true -> Color(0xFFDFF0D8)
-                isAnswerCorrect == false -> Color(0xFFF2DEDE)
+                isAnswerCorrect == true -> Color(0xFFDFF0D8) // Light green for correct
+                isAnswerCorrect == false -> Color(0xFFF2DEDE) // Light red for incorrect
                 else -> MaterialTheme.colorScheme.surface
             }
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp)
+                    .padding(vertical = 4.dp)
                     .clickable(enabled = isAnswerCorrect == null) {
                         selectedAnswerId = answer.id
-                        coroutineScope.launch {
-                            val result = withContext(Dispatchers.IO) {
-                                viewModel.checkAnswer(question.id, answer.id)
-                            }
-                            isAnswerCorrect = result.isCorrect
-                            correctIonic = result.correctAnswerText?.let {
-                                val correctIndex = question.answers.indexOfFirst { ans -> ans.answer_text == it }
-                                val label = answerLabels.getOrNull(correctIndex) ?: "?"
-                                "$label. $it"
-                            }
-                            onAnswerSelected(question.id, answer.id)
+                        isAnswerCorrect = answer.is_correct
+                        correctAnswerLabel = question.answers.find { it.is_correct }?.let {
+                            val correctIndex = question.answers.indexOf(it)
+                            "${answerLabels.getOrNull(correctIndex) ?: "?"}. ${it.answer_text}"
                         }
                     },
                 colors = CardDefaults.cardColors(containerColor = backgroundColor),
@@ -103,13 +89,13 @@ fun WrongQuestionCard(
 
         if (isAnswerCorrect != null) {
             Text(
-                text = if (isAnswerCorrect == true) "Đáp án đúng!" else "Đáp án sai!",
+                text = if (isAnswerCorrect == true) "Đáp án của bạn: Đúng" else "Đáp án của bạn: Sai",
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isAnswerCorrect == true) Color(0xFF4CAF50) else Color.Red,
                 modifier = Modifier.padding(top = 8.dp)
             )
             Text(
-                text = "Câu trả lời đúng là: ${correctIonic}",
+                text = "Đáp án đúng là: $correctAnswerLabel",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.Blue,
                 modifier = Modifier.padding(top = 4.dp)

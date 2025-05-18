@@ -14,35 +14,33 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.app_tblxa1.screens.MainScreen
-import com.example.app_tblxa1.ui.screens.ExamScreen
-import com.example.app_tblxa1.ui.screens.QuestionsScreen
-import com.example.app_tblxa1.ui.screens.SignInScreen
-import com.example.app_tblxa1.ui.screens.SignUpScreen
-import com.example.app_tblxa1.ui.screens.TheoryScreen
-import com.example.app_tblxa1.ui.screens.TrafficScreen
-import com.example.app_tblxa1.ui.screens.TipsScreen
-import com.example.app_tblxa1.ui.screens.WrongQuestionsScreen
-import com.example.app_tblxa1.ui.theme.screens.ExamResultScreen
+import com.example.app_tblxa1.ui.screens.*
+import com.example.app_tblxa1.ui.theme.screens.ExamScreen
+import com.example.app_tblxa1.ui.theme.screens.ReviewScreen
 import com.example.app_tblxa1.viewmodel.ExamViewModel
 import com.example.app_tblxa1.viewmodel.QuestionViewModel
-import com.example.app_tblxa1.viewmodel.SignInViewModel
-import com.example.app_tblxa1.viewmodel.SignUpViewModel
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    val questionViewModel: QuestionViewModel = viewModel()
+    val examViewModel: ExamViewModel = viewModel()
 
     NavHost(navController = navController, startDestination = "main") {
+        composable("sign_in") { SignInScreen(navController, viewModel()) }
+        composable("sign_up") { SignUpScreen(navController, viewModel()) }
         composable("main") { MainScreen(navController) }
         composable("theory") { TheoryScreen(navController) }
-
+        composable("traffic_screen") { TrafficScreen(navController) }
+        composable("tips_screen") { TipsScreen(navController) }
+        composable("wrong_questions") { WrongQuestionsScreen(navController) }
         composable(
             "exam/{typeTest}",
             arguments = listOf(navArgument("typeTest") { type = NavType.StringType })
         ) { backStackEntry ->
             val typeTest = backStackEntry.arguments?.getString("typeTest") ?: ""
 
-            if (!QuestionViewModel().isTypeTestValid(typeTest)) {
+            if (!questionViewModel.isTypeTestValid(typeTest)) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
                         text = "Loại bài thi không hợp lệ!",
@@ -51,37 +49,35 @@ fun AppNavigation() {
                     )
                 }
             } else {
-                val questionViewModel: QuestionViewModel = viewModel()
-                val examViewModel: ExamViewModel = viewModel()
-
                 ExamScreen(
-                    onExamFinished = { score, hasPassed ->
-                        navController.navigate("exam_result/$score/$hasPassed")
-                    },
                     navController = navController,
                     questionViewModel = questionViewModel,
                     examViewModel = examViewModel,
-                    typeTest = typeTest
+                    typeTest = typeTest,
+                    onExamFinished = {
+                        navController.navigate("exam_result")
+                    }
+
                 )
             }
         }
 
-        composable("exam_result/{score}/{hasPassed}",
-            arguments = listOf(
-                navArgument("score") { type = NavType.IntType },
-                navArgument("hasPassed") { type = NavType.BoolType }
+
+
+        composable("exam_result") {
+            ResultScreen(
+                navController = navController,
+                examViewModel = examViewModel
             )
-        ) { backStackEntry ->
-            val score = backStackEntry.arguments?.getInt("score") ?: 0
-            val hasPassed = backStackEntry.arguments?.getBoolean("hasPassed") ?: false
-            ExamResultScreen(score, hasPassed, navController)
         }
 
-        composable("traffic_screen") { TrafficScreen(navController) }
-        composable("tips_screen") { TipsScreen(navController) }
-        composable("sign_in") { SignInScreen(navController, SignInViewModel()) }
-        composable("sign_up") { SignUpScreen(navController, SignUpViewModel()) }
-        composable("wrong_questions") { WrongQuestionsScreen(navController) }
+        composable("review") {
+            ReviewScreen(
+                navController = navController,
+                examViewModel = examViewModel
+            )
+        }
+
         composable(
             "questions_screen/{category}",
             arguments = listOf(navArgument("category") { type = NavType.StringType })
@@ -91,4 +87,3 @@ fun AppNavigation() {
         }
     }
 }
-

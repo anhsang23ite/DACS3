@@ -1,5 +1,17 @@
 package com.example.app_tblxa1.model
 
+data class Question(
+    val id: Int,
+    val question_text: String,
+    val answers: List<Answers>
+)
+
+data class Answer(
+    val id: Int,
+    val answer_text: String,
+    val is_correct: Boolean
+)
+
 val wrongQuestions: List<Questions> = listOf(
     Questions(
         id = 1,

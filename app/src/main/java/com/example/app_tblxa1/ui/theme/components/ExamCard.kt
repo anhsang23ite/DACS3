@@ -13,7 +13,10 @@ fun ExamCard(
     question: Questions,
     questionNumber: Int,
     onAnswerSelected: (Int, Int) -> Unit,
-    selectedAnswerId: Int?
+    selectedAnswerId: Int?,
+    isCorrect: Boolean?, // Thêm tham số để hiển thị đúng/sai
+    isAnswerSelected: Boolean,
+    isExamSubmitted: Boolean
 ) {
     val answerLabels = listOf("A", "B", "C", "D", "E")
 
@@ -31,7 +34,12 @@ fun ExamCard(
 
         question.answers.forEachIndexed { index, answer ->
             val isSelected = answer.id == selectedAnswerId
-            val backgroundColor = if (isSelected) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
+            val backgroundColor = when {
+                isSelected && isCorrect == true -> MaterialTheme.colorScheme.primaryContainer
+                isSelected && isCorrect == false -> MaterialTheme.colorScheme.errorContainer
+                isSelected -> MaterialTheme.colorScheme.surfaceVariant
+                else -> MaterialTheme.colorScheme.surface
+            }
 
             Card(
                 modifier = Modifier
